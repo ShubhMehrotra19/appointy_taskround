@@ -613,57 +613,6 @@ export default function Dashboard() {
                 }`}>
               <div className="p-4 flex-1 flex flex-col">
                 {/* Results - Flex grow to fill space */}
-                <div className="flex-1 overflow-auto min-h-0">
-                  {searchResults.length === 0 ? (
-                    <div className="text-sm text-gray-500 flex items-center gap-2">
-                      <Sparkles className="w-4 h-4" />
-                      Enter a prompt to search your saved content using AI.
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {searchResults.map((r) => (
-                        <div
-                          key={r.id}
-                          className={`p-3 rounded border transition-all
-                          ${
-                            theme === "dark"
-                              ? "bg-gray-800 border-gray-700 hover:border-primary-500"
-                              : "bg-gray-50 border-gray-200 hover:border-primary-500"
-                          }`}>
-                          <div className="flex items-start justify-between gap-2">
-                            <a
-                              href={r.url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="block font-medium truncate flex-1">
-                              {r.title || r.url}
-                            </a>
-                            <div className="flex items-center gap-1 shrink-0">
-                              {r.source === "semantic" ? (
-                                <div className="text-xs px-2 py-0.5 rounded-full bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300 flex items-center gap-1">
-                                  <Sparkles className="w-3 h-3" />
-                                  AI Match
-                                </div>
-                              ) : r.source === "fuzzy" ? (
-                                <div className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300">
-                                  Close Match
-                                </div>
-                              ) : null}
-                            </div>
-                          </div>
-                          <p className="text-xs mt-2 text-gray-500 dark:text-gray-400 line-clamp-2">
-                            {r.content_text
-                              ? r.content_text.substring(0, 140) + "..."
-                              : ""}
-                          </p>
-                          <div className="text-xs text-gray-400 mt-2">
-                            {new Date(r.created_at).toLocaleString()}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
 
                 {/* Search Results */}
                 <div className="flex-1 overflow-auto min-h-0">

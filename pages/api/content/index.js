@@ -4,6 +4,11 @@ const {
   getContentByUser,
   getContentStats,
 } = require("../../../lib/db");
+const {
+  createContentWithSegments,
+  processSegments,
+} = require("../../../lib/content-segments");
+const { categorizeContent } = require("../../../lib/ai");
 
 export default async function handler(req, res) {
   const userId = getAuthUser(req);
@@ -13,22 +18,48 @@ export default async function handler(req, res) {
 
   if (req.method === "POST") {
     try {
-      const { url, title, content, html, segmentType, metadata } = req.body;
+      const { url, title, content, html, metadata } = req.body;
 
-      if (!url || !segmentType) {
-        return res
-          .status(400)
-          .json({ message: "URL and segment type are required" });
+      if (!url) {
+        return res.status(400).json({ message: "URL is required" });
       }
 
-      const result = await createContent(
+      // Auto-categorize content using AI
+      const aiResult = await categorizeContent({
+        text: content?.text || "",
+        hasImages: metadata?.hasImages || false,
+        hasVideos: metadata?.hasVideos || false,
+        hasLinks: metadata?.hasLinks || false,
+        elementType: metadata?.elementType,
+        url: url,
+      });
+
+      // Process and validate segments
+      const {
+        segments,
+        contentType,
+        metadata: enhancedMetadata,
+      } = processSegments(aiResult);
+
+      if (segments.length === 0) {
+        return res
+          .status(400)
+          .json({ message: "Could not determine content segment type" });
+      }
+
+      // Create content with multiple segments
+      const result = await createContentWithSegments(
         userId,
         url,
-        title || "Untitled",
+        title || enhancedMetadata.title || "Untitled",
         content?.text || "",
         html || "",
-        segmentType,
-        metadata || {}
+        segments,
+        {
+          ...metadata,
+          ...enhancedMetadata,
+          contentType,
+        }
       );
 
       // Broadcast update to connected clients (if WS server initialized)

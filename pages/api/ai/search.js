@@ -2,6 +2,10 @@ const { getAuthUser } = require("../../../lib/auth");
 const { searchContentByUser } = require("../../../lib/db");
 const Fuse = require("fuse.js");
 const { getEmbedding, cosineSimilarity } = require("../../../lib/ai");
+const {
+  parseDateFromString,
+  getTimeBoost,
+} = require("../../../lib/temporal-search");
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -73,32 +77,44 @@ export default async function handler(req, res) {
     const fuzzySet = new Set(fuzzyResults.map((r) => r.item.id));
     const semanticSet = new Set(semanticResults.map((r) => r.id));
 
-    // Helper to boost score based on segment relevance
-    const getSegmentBoost = (item) => {
-      if (!segments.length) return 1;
-      return segments.includes(item.segment_type) ? 1.2 : 0.8;
+    // Analyze temporal aspects of the query
+    const timeQuery = parseDateFromString(prompt);
+
+    // Helper to boost score based on segment relevance and time
+    const getBoost = (item) => {
+      const segmentBoost =
+        segments.length > 0
+          ? segments.includes(item.segment_type)
+            ? 1.2
+            : 0.8
+          : 1;
+      const timeBoost = getTimeBoost(item, timeQuery);
+      return segmentBoost * timeBoost;
     };
 
     const combinedResults = [
       ...fuzzyResults.map((r) => ({
         ...r.item,
-        score: r.score * getSegmentBoost(r.item),
+        score: r.score * getBoost(r.item),
         source: "fuzzy",
+        timeRelevance: !!timeQuery,
       })),
       ...semanticResults
         .filter((r) => !fuzzySet.has(r.id))
         .map((r) => ({
           ...r,
-          score: r.similarity * getSegmentBoost(r),
+          score: r.similarity * getBoost(r),
           source: "semantic",
+          timeRelevance: !!timeQuery,
         })),
       ...initialResults
         .filter((r) => !fuzzySet.has(r.id) && !semanticSet.has(r.id))
         .slice(0, 10)
         .map((r) => ({
           ...r,
-          score: 0.5 * getSegmentBoost(r),
+          score: 0.5 * getBoost(r),
           source: "basic",
+          timeRelevance: !!timeQuery,
         })),
     ].sort((a, b) => b.score - a.score);
 
