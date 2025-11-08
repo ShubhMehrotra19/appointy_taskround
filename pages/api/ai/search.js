@@ -12,6 +12,8 @@ export default async function handler(req, res) {
   if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
   try {
+    console.log("OpenAI Key available:", !!process.env.OPENAI_API_KEY);
+
     const { prompt, segments = [] } = req.body;
     if (!prompt || prompt.trim() === "") {
       return res.status(400).json({ message: "Prompt is required" });
